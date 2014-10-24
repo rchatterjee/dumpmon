@@ -1,12 +1,12 @@
 from Queue import Queue
 import requests
 import time
-import re
-from pymongo import MongoClient
+import re, os, json, random
+#from pymongo import MongoClient
 from requests import ConnectionError
-from twitter import TwitterError
-from settings import USE_DB, DB_HOST, DB_PORT
-import logging
+#from twitter import TwitterError
+from settings import USE_DB, DB_HOST, DB_PORT, EMAIL_THRESHOLD
+import logging, codecs
 import helper
 
 
@@ -36,7 +36,9 @@ class Site(object):
         if USE_DB:
             # Lazily create the db and collection if not present
             self.db_client = MongoClient(DB_HOST, DB_PORT).paste_db.pastes
-
+        else:
+            if not os.path.exists('pastebindump'):
+                os.mkdir('pastebindump')
 
     def empty(self):
         return len(self.queue) == 0
@@ -75,28 +77,40 @@ class Site(object):
                 self.ref_id = paste.id
                 logging.info('[*] Checking ' + paste.url)
                 paste.text = self.get_paste_text(paste)
-                tweet = helper.build_tweet(paste)
+                save_dic = {
+                    'pid' : paste.id,
+                    'text' : paste.text,
+                    'emails' : paste.emails,
+                    'hashes' : paste.hashes,
+                    'num_emails' : paste.num_emails,
+                    'num_hashes' : paste.num_hashes,
+                    'type' : paste.type,
+                    'db_keywords' : paste.db_keywords,
+                    'url' : paste.url
+                    }
+                tweet = None; # helper.build_tweet(paste)
                 if tweet:
-                    logging.info(tweet)
                     with t_lock:
-                        if USE_DB:
-                            self.db_client.save({
-                                'pid' : paste.id,
-                                'text' : paste.text,
-                                'emails' : paste.emails,
-                                'hashes' : paste.hashes,
-                                'num_emails' : paste.num_emails,
-                                'num_hashes' : paste.num_hashes,
-                                'type' : paste.type,
-                                'db_keywords' : paste.db_keywords,
-                                'url' : paste.url
-                               })
                         try:
                             bot.statuses.update(status=tweet)
                         except TwitterError:
                             pass
+                if USE_DB:
+                    with t_lock:
+                        self.db_client.save(save_dic)
+                else:
+                    if paste.num_emails>EMAIL_THRESHOLD:
+                        print "Found one paste with many email-ids: %s" % paste.id
+                        with codecs.open('pastebindump/%s.txt' % paste.id, 'w', 'utf-8-sig') as f:
+                            f.write(paste.emails)
+                            f.write('\n' + ('--'*10) + '\n')
+                            f.write(paste.text)
+                            f.write('\n' + ('-='*10) + '\n')
+                    else:
+                        print paste
+                time.sleep(random.randint(0,self.sleep/5))
             self.update()
             while self.empty():
                 logging.debug('[*] No results... sleeping')
-                time.sleep(self.sleep)
+                time.sleep(random.randint(0,self.sleep*2))
                 self.update()

@@ -8,7 +8,7 @@ import requests
 import settings
 from time import sleep, strftime
 import logging
-
+import codecs
 
 r = requests.Session()
 
@@ -26,7 +26,6 @@ def download(url, headers=None):
         logging.warn('[!] Retrying...')
         response = download(url)
     return response
-
 
 def log(text):
     '''

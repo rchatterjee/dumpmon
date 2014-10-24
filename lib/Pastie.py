@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from . import helper
 from time import sleep
 from settings import SLEEP_PASTIE
-from twitter import TwitterError
+#from twitter import TwitterError
 import logging
 
 

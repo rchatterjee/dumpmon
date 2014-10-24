@@ -9,8 +9,8 @@ class Paste(object):
         class Paste: Generic "Paste" object to contain attributes of a standard paste
 
         '''
-        self.emails = 0
-        self.hashes = 0
+        self.emails = ''
+        self.hashes = ''
         self.num_emails = 0
         self.num_hashes = 0
         self.text = None
