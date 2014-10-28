@@ -107,7 +107,7 @@ class Site(object):
                             f.write(paste.text)
                             f.write('\n' + ('-='*10) + '\n')
                     else:
-                        print paste
+                        print paste.url
                 time.sleep(random.randint(0,self.sleep/5))
             self.update()
             while self.empty():
